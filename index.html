@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="tech">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LabArduino — Painel Educacional</title>
+<style>
+/* ============ TEMAS ============ */
+:root{--rad:16px;--gap:14px;--f:'Segoe UI',system-ui,Roboto,Arial,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html[data-theme="tech"]{
+  --bg:#0a0f1a;--panel:#101a2e;--card:#131d33;--card2:#0e1729;--line:#243352;
+  --tx:#e9f0ff;--mut:#93a4c3;--acc:#22d3ee;--acc2:#a78bfa;
+  --on:#34d399;--off:#3b4a63;--warn:#fbbf24;--danger:#f87171;
+  --shadow:0 6px 22px #0008;
+}
+html[data-theme="claro"]{
+  --bg:#eef2f7;--panel:#ffffff;--card:#ffffff;--card2:#f1f5f9;--line:#dbe3ee;
+  --tx:#0f172a;--mut:#5b6b83;--acc:#2563eb;--acc2:#7c3aed;
+  --on:#16a34a;--off:#cbd5e1;--warn:#d97706;--danger:#dc2626;
+  --shadow:0 4px 14px #0f172a14;
+}
+html[data-theme="cel"]{
+  --bg:#eef2f7;--panel:#ffffff;--card:#ffffff;--card2:#f1f5f9;--line:#dbe3ee;
+  --tx:#0f172a;--mut:#5b6b83;--acc:#2563eb;--acc2:#7c3aed;
+  --on:#16a34a;--off:#cbd5e1;--warn:#d97706;--danger:#dc2626;
+  --shadow:0 4px 14px #0f172a14;
+}
+body{font-family:var(--f);background:var(--bg);color:var(--tx);transition:background .3s,color .3s;-webkit-font-smoothing:antialiased}
+/* ============ TOPO ============ */
+.topbar{position:sticky;top:0;z-index:50;background:var(--panel);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.brand{font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.brand .tag{font-size:10px;font-weight:700;color:var(--acc);border:1px solid var(--acc);border-radius:20px;padding:2px 8px;letter-spacing:.5px}
+.search{flex:1;min-width:170px;max-width:360px}
+input,select,textarea{font-family:inherit;font-size:14px;background:var(--card2);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 10px;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{cursor:pointer;font-size:12px;padding:6px 10px;border-radius:20px;border:1px solid var(--line);background:var(--card2);color:var(--mut)}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700}
+.right{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap}
+.tbtn{cursor:pointer;background:var(--card2);border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:8px 11px;font-size:13px}
+.tbtn:hover{border-color:var(--acc)}
+.tbtn.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700}
+.pill{font-size:11px;font-weight:800;padding:5px 11px;border-radius:20px;letter-spacing:.5px;white-space:nowrap}
+.pill.demo{background:#fbbf2422;color:var(--warn);border:1px solid var(--warn)}
+.pill.ok{background:#34d39922;color:var(--on);border:1px solid var(--on)}
+.pill.err{background:#f8717122;color:var(--danger);border:1px solid var(--danger)}
+.editbar{display:none;background:var(--acc2);color:#fff;padding:8px 16px;font-size:13px;font-weight:600;text-align:center}
+body.editing .editbar{display:block}
+/* ============ GRADE / CARDS ============ */
+main{padding:16px;max-width:1500px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:var(--gap)}
+html[data-theme="cel"] .grid{grid-template-columns:1fr}
+html[data-theme="cel"] body{font-size:16px}
+html[data-theme="cel"] input,html[data-theme="cel"] select,html[data-theme="cel"] textarea{font-size:16px}
+html[data-theme="cel"] .chip{padding:10px 14px;font-size:14px}
+html[data-theme="cel"] .tbtn{padding:12px 14px;font-size:15px}
+html[data-theme="cel"] .card{padding:16px}
+html[data-theme="cel"] .power{width:86px;height:86px;font-size:19px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--rad);padding:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px}
+body.editing .card{outline:2px dashed var(--acc2);outline-offset:2px}
+.chead{display:flex;align-items:flex-start;gap:9px}
+.chead .ic{font-size:25px;line-height:1.1}
+.chead h3{font-size:14.5px;line-height:1.25}
+.chead .sub{font-size:10.5px;color:var(--mut);display:block;margin-top:2px;font-weight:600}
+.hbtns{margin-left:auto;display:flex;gap:3px;flex-shrink:0}
+.hbtn{cursor:pointer;background:transparent;border:none;font-size:14px;color:var(--mut);padding:3px 5px;border-radius:7px}
+.hbtn:hover{color:var(--acc);background:var(--card2)}
+.edit-only{display:none}
+body.editing .edit-only{display:inline-flex}
+body.editing .hbtn.edit-only{border:1px solid var(--line);background:var(--card2)}
+.cbody{flex:1;display:flex;flex-direction:column;gap:8px;justify-content:center}
+.cardfoot{font-size:10.5px;color:var(--mut);display:flex;justify-content:space-between;gap:6px}
+/* botão de força */
+.rowc{display:flex;gap:12px;align-items:center}
+.power{width:64px;height:64px;min-width:64px;border-radius:50%;border:2px solid var(--off);background:var(--card2);color:var(--mut);font-weight:900;font-size:15px;cursor:pointer;transition:all .2s}
+.power.on{background:var(--on);border-color:var(--on);color:#052e16;box-shadow:0 0 18px var(--on)}
+html[data-theme="claro"] .power.on,html[data-theme="cel"] .power.on{color:#fff}
+.timerbox{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+.trow{display:flex;gap:6px}
+.trow input[type=number]{width:62px}
+.trow select{width:64px}
+.tbtn2{cursor:pointer;background:var(--acc);border:none;color:#fff;font-weight:700;font-size:12px;border-radius:8px;padding:7px 9px;flex:1;white-space:nowrap}
+.presets{display:flex;gap:5px;flex-wrap:wrap}
+.preset{cursor:pointer;font-size:11px;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--card2);color:var(--mut)}
+.preset:hover{border-color:var(--acc);color:var(--acc)}
+.cd{font-size:12px;color:var(--warn);font-weight:800;min-height:16px}
+.ag{font-size:11px;color:var(--mut);background:var(--card2);border-radius:8px;padding:4px 8px;align-self:flex-start;font-weight:600}
+/* sensores */
+.bignum-row{display:flex;align-items:baseline;gap:6px}
+.val{font-size:31px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.val small{font-size:13px;color:var(--mut);font-weight:700}
+.spark{width:100%;height:42px;display:block}
+.upd{font-size:10.5px;color:var(--mut)}
+.bin{display:flex;align-items:center;gap:10px}
+.dot{width:17px;height:17px;border-radius:50%;background:var(--off);flex-shrink:0;transition:.2s}
+.dot.on{background:var(--on);box-shadow:0 0 12px var(--on)}
+.bv{font-weight:800;font-size:15px}
+/* rgb / pwm / display */
+.sliders{display:flex;flex-direction:column;gap:8px}
+.srow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut);font-weight:700}
+.srow label{width:14px;font-weight:800}
+.srow input[type=range]{flex:1;accent-color:var(--acc);min-width:0}
+.srow .sv{width:36px;text-align:right;font-variant-numeric:tabular-nums}
+.swatch{height:22px;border-radius:8px;border:1px solid var(--line);background:#000}
+.rgbpre{display:flex;gap:5px}
+.rgbpre button{flex:1;cursor:pointer;font-size:11px;padding:5px 2px;border-radius:8px;border:1px solid var(--line);background:var(--card2);color:var(--tx)}
+.digit{font-size:52px;font-weight:900;text-align:center;font-family:'Courier New',monospace;line-height:1.1;color:var(--acc);text-shadow:0 0 12px var(--acc)}
+.info-d{font-size:12.5px;color:var(--mut);line-height:1.55}
+.placa-st{display:flex;align-items:center;gap:10px}
+.addcard{border:2px dashed var(--line);border-radius:var(--rad);display:none;align-items:center;justify-content:center;min-height:150px;cursor:pointer;color:var(--mut);font-weight:700;flex-direction:column;gap:6px;font-size:14px}
+.addcard:hover{border-color:var(--acc);color:var(--acc)}
+body.editing .addcard{display:flex}
+/* ============ MODAIS / TOASTS ============ */
+.modal-ov{position:fixed;inset:0;background:#000a;backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:100;padding:14px}
+.modal-ov.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:var(--rad);width:100%;max-width:620px;max-height:90vh;overflow:auto;padding:18px;box-shadow:var(--shadow)}
+.modal h2{font-size:17px;margin-bottom:14px}
+.modal h4{font-size:13px;margin:12px 0 6px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
+.frow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.field{flex:1;min-width:130px;display:flex;flex-direction:column;gap:4px}
+.field label{font-size:11px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.field p{font-size:11px;color:var(--mut)}
+.icongrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(36px,1fr));gap:5px;max-height:112px;overflow:auto;padding:5px;border:1px solid var(--line);border-radius:10px}
+.icongrid button{font-size:18px;background:var(--card2);border:1.5px solid transparent;border-radius:8px;cursor:pointer;padding:4px}
+.icongrid button.on{border-color:var(--acc)}
+.mfoot{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.btn{cursor:pointer;border:none;border-radius:10px;padding:10px 16px;font-weight:700;font-size:13px}
+.btn.pri{background:var(--acc);color:#fff}
+.btn.sec{background:var(--card2);color:var(--tx);border:1px solid var(--line)}
+.btn.dng{background:var(--danger);color:#fff}
+.btn.sm{padding:8px 11px;font-size:12px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+.helpst{display:flex;gap:10px;margin:9px 0;align-items:flex-start}
+.helpst .n{min-width:26px;height:26px;border-radius:50%;background:var(--acc);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px}
+.helpst p{font-size:13px;line-height:1.5;color:var(--tx)}
+.helpst p span{color:var(--mut)}
+.toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:300;max-width:330px}
+.toast{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:10px;padding:10px 14px;font-size:13px;box-shadow:var(--shadow);animation:tin .25s}
+.toast.err{border-left-color:var(--danger)}
+.toast.ok{border-left-color:var(--on)}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}}
+@media (max-width:760px){.search{order:5;max-width:100%;flex-basis:100%}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">🧪 <span>LabArduino</span><span class="tag">EDUCACIONAL</span></div>
+  <input id="busca" class="search" placeholder="🔎 Buscar módulo… (ex.: relé, temperatura, LED)">
+  <div class="chips" id="chips"></div>
+  <div class="right">
+    <button class="tbtn" id="tTech" title="Visual escuro estilo central de controle">🖥️ Tech</button>
+    <button class="tbtn" id="tClaro" title="Visual claro">☀️ Claro</button>
+    <button class="tbtn" id="tCel" title="Visual para celular: coluna única e botões grandes">📱 Celular</button>
+    <button class="tbtn" id="bPlaca" title="Ligar o Arduino na porta USB (Chrome/Edge)">🔌 Placa</button>
+    <button class="tbtn" id="bEditar">✏️ Editar</button>
+    <button class="tbtn" id="bConfig" title="Configurações">⚙️</button>
+    <button class="tbtn" id="bAjuda" title="Como conectar">❓</button>
+    <span class="pill demo" id="conn">DEMO</span>
+  </div>
+</header>
+<div class="editbar">✏️ Modo edição ativo — <b>✏️</b> edita um card · <b>🗑️</b> remove · <b>➕</b> adiciona novo · desligue para voltar ao uso</div>
+<main>
+  <div class="grid" id="grid"></div>
+</main>
+
+<!-- Modal: editar / novo card -->
+<div class="modal-ov" id="mEdit"><div class="modal">
+  <h2 id="mEditTitulo">Editar card</h2>
+  <div class="frow">
+    <div class="field" style="flex:2"><label>Nome no painel</label><input id="f_nome" maxlength="40"></div>
+    <div class="field" style="flex:1"><label>Tipo de controle</label>
+      <select id="f_tipo">
+        <option value="onoff">Atuador liga/desliga (com timer)</option>
+        <option value="pwm">Dimmer 0–100% (velocidade/intensidade)</option>
+        <option value="rgb">RGB / multicanal</option>
+        <option value="sensor">Sensor numérico (com gráfico)</option>
+        <option value="binario">Sensor liga/desliga</option>
+        <option value="display">Display 0–9</option>
+        <option value="placa">Status da placa</option>
+        <option value="info">Componente (informativo)</option>
+      </select></div>
+  </div>
+  <div class="field" style="margin-bottom:10px"><label>Ícone</label><div class="icongrid" id="f_icones"></div></div>
+  <div class="frow">
+    <div class="field" style="flex:2"><label>Módulo (educacional)</label><select id="f_modulo"></select></div>
+    <div class="field" style="flex:1"><label>Pino(s) no Arduino</label><input id="f_pins" placeholder="ex.: 9,10,11 ou A0"></div>
+  </div>
+  <div class="frow">
+    <div class="field"><label>Unidade</label><input id="f_unidade" placeholder="°C, %, bpm…"></div>
+    <div class="field"><label>Mínimo</label><input id="f_min" type="number"></div>
+    <div class="field"><label>Máximo</label><input id="f_max" type="number"></div>
+    <div class="field"><label>Timer padrão (s)</label><input id="f_timer" type="number" min="1"></div>
+  </div>
+  <div class="frow">
+    <div class="field"><label>⏰ Agendar ligar (hh:mm)</label><input id="f_agl" type="time"></div>
+    <div class="field"><label>⏰ Agendar desligar (hh:mm)</label><input id="f_agd" type="time"></div>
+  </div>
+  <div class="field"><label>Descrição educacional (aparece no botão “?”)</label><textarea id="f_desc" rows="3"></textarea></div>
+  <div class="mfoot">
+    <button class="btn sec" id="f_cancel">Cancelar</button>
+    <button class="btn dng edit-only" id="f_excluir" style="display:none">🗑️ Excluir</button>
+    <button class="btn pri" id="f_salvar">💾 Salvar</button>
+  </div>
+</div></div>
+
+<!-- Modal: configurações -->
+<div class="modal-ov" id="mConfig"><div class="modal">
+  <h2>⚙️ Configurações</h2>
+  <div class="field" style="margin-bottom:10px"><label>Modo de funcionamento</label>
+    <select id="c_modo">
+      <option value="demo">🎓 Demonstração (sem placa — tudo simulado)</option>
+      <option value="api">🔗 Conectado (planilha na nuvem)</option>
+    </select>
+    <p>No modo conectado o painel guarda tudo na planilha (Apps Script). Para acionar a placa de verdade, clique em <b>🔌 Placa</b> no topo com o Arduino no cabo USB — o próprio navegador (Chrome/Edge) conversa com ela, sem instalar nada.</p>
+  </div>
+  <div class="field" style="margin-bottom:10px"><label>URL do Apps Script (termina em /exec)</label><input id="c_url" placeholder="https://script.google.com/macros/s/…/exec"></div>
+  <div class="frow">
+    <div class="field"><label>Segredo</label><input id="c_secret" placeholder="o mesmo do Código.gs"></div>
+    <div class="field"><label>Intervalo de leitura (s)</label><input id="c_int" type="number" min="2" max="120"></div>
+  </div>
+  <h4>Conexão e dados</h4>
+  <div class="btnrow">
+    <button class="btn pri sm" id="c_testar">🔍 Testar conexão</button>
+    <button class="btn sec sm" id="c_sync">🔄 Sincronizar cards → planilha</button>
+  </div>
+  <h4>Backup do layout (cards editados)</h4>
+  <div class="btnrow">
+    <button class="btn sec sm" id="c_salvar_drive">☁️ Salvar layout no Drive</button>
+    <button class="btn sec sm" id="c_carregar_drive">⬇️ Carregar layout do Drive</button>
+    <button class="btn sec sm" id="c_exportar">📤 Exportar arquivo</button>
+    <button class="btn sec sm" id="c_importar">📥 Importar arquivo</button>
+    <button class="btn dng sm" id="c_resetar">↩️ Restaurar padrão</button>
+    <input type="file" id="c_arquivo" accept=".json" style="display:none">
+  </div>
+  <div class="mfoot"><button class="btn pri" id="c_fechar">OK</button></div>
+</div></div>
+
+<!-- Modal: ajuda -->
+<div class="modal-ov" id="mAjuda"><div class="modal">
+  <h2>❓ Como usar em 4 passos</h2>
+  <div class="helpst"><div class="n">1</div><p><b>Hoje mesmo, sem placa:</b> use no modo <b>DEMO</b>. Ligue, desligue, use timers e veja os gráficos — tudo simulado. <span>O painel salva sozinho no navegador.</span></p></div>
+  <div class="helpst"><div class="n">2</div><p><b>Crie o servidor:</b> copie a planilha + o <b>Codigo.gs</b> (pasta apps_script) e publique como App da Web. <span>Passo a passo no README.</span></p></div>
+  <div class="helpst"><div class="n">3</div><p><b>Carregue o esboço no Arduino</b> pela IDE e clique em <b>🔌 Placa</b> no topo do painel. <span>O navegador (Chrome/Edge no computador) fala com a placa pela USB — nada para instalar.</span></p></div>
+  <div class="helpst"><div class="n">4</div><p><b>Conecte a nuvem:</b> em ⚙️ Configurações escolha modo <b>Conectado</b> e cole a URL do Apps Script e o segredo. <span>A planilha guarda o estado, o histórico e cumpre timers e agendas.</span></p></div>
+  <h4>Editar o painel</h4>
+  <p class="info-d">Clique em <b>✏️ Editar</b> no topo: cada card ganha botões para renomear, trocar ícone, mudar tipo, definir pinos, timer e agenda. O botão <b>➕</b> cria cards novos. Nada é editado na planilha — tudo aqui no visual.</p>
+  <h4>Segurança</h4>
+  <p class="info-d">Nunca ligue cargas de 110/220 V sem supervisão: comece pelo relé com uma lâmpada de 5–12 V. O laser nunca deve apontar para os olhos.</p>
+  <div class="mfoot"><button class="btn pri" id="a_fechar">Entendi!</button></div>
+</div></div>
+
+<!-- Modal: gráfico do sensor -->
+<div class="modal-ov" id="mGraf"><div class="modal">
+  <h2 id="g_titulo">📈 Histórico</h2>
+  <canvas id="g_canvas" width="560" height="240" style="width:100%"></canvas>
+  <p class="upd" id="g_info" style="margin-top:8px"></p>
+  <div class="mfoot"><button class="btn pri" id="g_fechar">Fechar</button></div>
+</div></div>
+
+<!-- Modal: confirmar -->
+<div class="modal-ov" id="mConf"><div class="modal" style="max-width:430px">
+  <h2 id="conf_titulo">Confirmar</h2>
+  <p id="conf_msg" style="font-size:14px;line-height:1.5"></p>
+  <div class="mfoot"><button class="btn sec" id="conf_nao">Cancelar</button><button class="btn dng" id="conf_sim">Confirmar</button></div>
+</div></div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+'use strict';
+/* ================================================================
+   LabArduino — Painel educacional para kits Arduino
+   Arquivo único: funciona offline (modo DEMO) ou conectado
+   (Google Apps Script + placa na USB do próprio navegador).
+   Layout 100% editável.
+   ================================================================ */
+
+/* ---------- Categorias ---------- */
+const CATS = {
+  todos:{n:'Todos',i:'📋'}, luz:{n:'Luz & LEDs',i:'💡'}, atua:{n:'Atuadores',i:'🔌'},
+  amb:{n:'Ambiente',i:'🌡️'}, mov:{n:'Movimento & Magnéticos',i:'🧲'},
+  som:{n:'Som & Interação',i:'🎤'}, ctrl:{n:'Controles',i:'🕹️'}, comp:{n:'Componentes',i:'🧰'}
+};
+
+/* ---------- Módulos (conteúdo educacional do kit do usuário) ---------- */
+const MODULOS = {
+  joystick:{n:'JoyStick XY',cat:'ctrl',d:'Alavanca de 2 eixos (X e Y) com botão embutido — o mesmo tipo de controle usado em videogames.',u:'Ligue VCC, GND, VRx e VRy em pinos analógicos (ex.: A4 e A5) e leia valores de 0 a 1023 em cada eixo.'},
+  flame:{n:'Sensor de Chama',cat:'amb',d:'Detecta a luz infravermelha emitida pelo fogo. Ideal para alarmes de incêndio.',u:'Saída digital: 1 quando há chama próxima. Ajuste a sensibilidade no potenciômetro azul do módulo.'},
+  rgb:{n:'LED RGB',cat:'luz',d:'LED com 3 cores dentro (vermelho, verde e azul). Misturando as intensidades cria qualquer cor.',u:'Cada cor em um pino PWM (3, 5, 6, 9, 10 ou 11) com resistor de 220Ω; a perna mais longa vai no GND.'},
+  heartbeat:{n:'Sensor de Batimentos',cat:'amb',d:'Mede batimentos cardíacos pelo dedo usando um LED e um sensor de luz.',u:'Encoste o dedo no sensor, aguarde alguns segundos e veja o ritmo no gráfico do card.'},
+  lightcup:{n:'Magic Light Cup',cat:'luz',d:'Módulo com LED e sensor de inclinação: incline e a luz “transborda” de um módulo para o outro.',u:'Use como um LED comum e explore o efeito com dois módulos lado a lado.'},
+  hall:{n:'Sensor Hall',cat:'mov',d:'Detecta a presença de campo magnético (ímã) com saída digital.',u:'Aproxime um ímã e veja a saída mudar de estado no card.'},
+  rele:{n:'Relé 5V',cat:'atua',d:'Chave elétrica controlada pelo Arduino para ligar cargas maiores (até ~10 A).',u:'Pino de sinal em qualquer saída digital. Cuidado com a rede elétrica: comece com cargas de 5–12 V.'},
+  linear_hall:{n:'Linear Hall',cat:'mov',d:'Mede a intensidade do campo magnético (saída analógica contínua).',u:'Leia em um pino analógico: quanto mais perto o ímã, maior o valor.'},
+  smd_rgb:{n:'LED RGB SMD',cat:'luz',d:'LED RGB em versão compacta (montagem superficial).',u:'Funciona como o LED RGB comum: 3 canais PWM + GND.'},
+  flash7:{n:'LED 7 Cores',cat:'luz',d:'Pisca sozinho alternando cores quando recebe energia.',u:'Ligue direto no 5V/GND ou controle por um pino digital como o card faz.'},
+  tilt:{n:'Tilt Switch',cat:'mov',d:'Interruptor que liga quando inclinado (contém uma esfera metálica).',u:'Saída digital: 1 quando inclinado. Ótimo para alarmes de “caiu”.'},
+  ds18b20:{n:'TEMP 18B20 (DS18B20)',cat:'amb',d:'Sensor de temperatura digital muito preciso, em formato de transistor.',u:'Precisa do esboço “plus” (biblioteca OneWire). Vários sensores podem compartilhar o mesmo pino.'},
+  bigsound:{n:'BigSound (Microfone)',cat:'som',d:'Microfone de alta sensibilidade: detecta palmas, batidas e barulhos.',u:'Leia o pino analógico (ruído) ou o digital (som forte). Ajuste o potenciômetro do módulo.'},
+  touch:{n:'Sensor de Toque',cat:'som',d:'Detecta toque humano por capacitância, sem botão mecânico.',u:'Saída digital: 1 quando alguém encosta na área dourada.'},
+  bicolor:{n:'LED Bicolor',cat:'luz',d:'LED com 2 cores (geralmente vermelho/verde) em um só corpo.',u:'Dois pinos de saída: acenda um de cada vez (ou com PWM nos dois).'},
+  laser:{n:'Laser Emit',cat:'atua',d:'Emite um feixe de laser vermelho de baixa potência.',u:'Saída digital. Nunca aponte para os olhos; combine com o Light Blocking para criar alarmes.'},
+  ball:{n:'Ball Switch',cat:'mov',d:'Liga quando balança ou inclina (uma esfera de metal fecha o contato).',u:'Saída digital para detectar movimento ou vibração forte.'},
+  analog_temp:{n:'Analog Temp (Maleta)',cat:'amb',d:'Termistor NTC da maleta: a resistência muda com a temperatura (saída analógica).',u:'Leia no pino analógico e converta para °C com a fórmula do README.'},
+  smallsound:{n:'Small Sound (Microfone)',cat:'som',d:'Microfone de baixa sensibilidade para sons próximos.',u:'Igual ao BigSound, com alcance menor. Ótimo para comparar os dois!'},
+  digital_temp:{n:'Digital Temp',cat:'amb',d:'Outro sensor de temperatura digital da maleta.',u:'Depende do modelo do módulo: veja a seção do esboço plus no README.'},
+  bicolor_s:{n:'LED Bicolor Mini',cat:'luz',d:'Versão pequena do LED bicolor.',u:'Igual ao LED Bicolor: dois canais de cor.'},
+  button:{n:'Botão (Push-button)',cat:'som',d:'Botão simples: fecha o circuito quando pressionado.',u:'Use INPUT_PULLUP: pressionado = 0, solto = 1. As capas coloridas do kit deixam o clique mais fácil.'},
+  ldr:{n:'Fotoresistor (LDR)',cat:'amb',d:'A resistência muda com a luminosidade: mais luz, menos resistência.',u:'Ligue em divisor de tensão com resistor de 10kΩ e leia no pino analógico.'},
+  ir_emit:{n:'Emissor IR',cat:'atua',d:'Emite luz infravermelha invisível a olho nu.',u:'Combine com o receptor IR ou com o sensor de obstáculos. A câmera do celular “vê” o feixe!'},
+  tracking:{n:'Tracking (Seguidor de Linha)',cat:'mov',d:'Detecta superfícies claras e escuras — a base de um robô seguidor de linha.',u:'Saída digital: 0 sobre branco, 1 sobre preto. Ajuste o potenciômetro do módulo.'},
+  buzz_a:{n:'Buzzer Ativo',cat:'atua',d:'Emite um bip fixo quando energizado — não precisa de programação de som.',u:'Pino digital comum. Ideal para alarmes junto com o sensor de chama ou de choque.'},
+  reed:{n:'Reed Switch',cat:'mov',d:'Fecha o contato na presença de um ímã (como nos sensores de porta).',u:'Saída digital; ideal para sensor de porta/janela com um ímã na moldura.'},
+  shock:{n:'Sensor de Choque',cat:'mov',d:'Detecta impactos e vibrações fortes.',u:'Saída digital que pulsa quando o módulo bate. Use com o buzzer para alarme de batida.'},
+  dht11:{n:'DHT11 (Temp + Umidade)',cat:'amb',d:'Mede temperatura e umidade do ar em um módulo só.',u:'Precisa do esboço plus (biblioteca DHT). No painel ele cria dois cards: temperatura e umidade.'},
+  ir_rec:{n:'Receptor IR',cat:'ctrl',d:'Recebe os sinais de qualquer controle remoto infravermelho.',u:'Com o esboço plus é possível decodificar os botões; no painel aparece como pulso de sinal.'},
+  avoid:{n:'Avoid (Obstáculos)',cat:'mov',d:'Detecta objetos próximos por infravermelho refletido.',u:'Saída digital: 0 quando vê obstáculo. Ajuste a distância no potenciômetro. Base para robôs desviadores.'},
+  buzz_p:{n:'Buzzer Passivo',cat:'atua',d:'Toca melodias: você controla a frequência do som pelo programa.',u:'Pino digital qualquer. O esboço aceita o comando TONE (frequência + duração).'},
+  mini_reed:{n:'Mini Reed',cat:'mov',d:'Versão compacta do reed switch.',u:'Funciona igual ao Reed Switch: reage a ímãs próximos.'},
+  encoder:{n:'Rotary Encoder',cat:'ctrl',d:'Detecta rotação e direção — perfeito para navegar em menus.',u:'No painel funciona como contador. Na placa real usa 2 pinos com interrupção (veja README).'},
+  analog_hall:{n:'Analog Hall',cat:'mov',d:'Sensor magnético com saída analógica contínua.',u:'Leia em pino analógico: o valor varia conforme a força e o polo do ímã.'},
+  tap:{n:'Tap Module',cat:'mov',d:'Detecta batidas leves no módulo (como um “toc toc”).',u:'Saída digital que pulsa a cada batida. Uma batida dupla pode ligar as luzes!'},
+  light_blocking:{n:'Light Blocking',cat:'mov',d:'Detecta quando algo interrompe o feixe de luz entre emissor e receptor.',u:'Use junto com o laser para criar uma “cerca” que dispara o alarme.'},
+  uno:{n:'Arduino UNO SMD',cat:'comp',d:'A placa principal: microcontrolador ATmega328 com 14 pinos digitais e 6 analógicos.',u:'Conecte ao PC pelo cabo USB e clique em 🔌 Placa: o próprio navegador conversa com ela.'},
+  cabo_usb:{n:'Cabo USB A-B',cat:'comp',d:'Conecta a placa ao computador: energia + comunicação serial ao mesmo tempo.',u:'É por ele que o navegador (Chrome/Edge) fala com o Arduino — sem instalar nada.'},
+  cabo9v:{n:'Cabo de Alimentação 9V',cat:'comp',d:'Alimenta a placa por bateria quando ela está fora do computador.',u:'Use apenas com fontes/baterias de 7–12 V no conector PWR da placa.'},
+  protoboard:{n:'Protoboard 400 furos',cat:'comp',d:'Placa de montagem sem solda: os furos são ligados em colunas e nos trilhos laterais.',u:'Monte os circuitos aqui antes de fixar qualquer coisa. Os trilhos azuis são GND, os vermelhos são 5V.'},
+  pot:{n:'Potenciômetro 10k',cat:'ctrl',d:'Resistência variável: um “volume” ajustável com o dedo.',u:'Ponteiras no 5V e GND, pino do meio em um analógico (ex.: A4); leia de 0 a 1023.'},
+  display7:{n:'Display 7 Segmentos',cat:'ctrl',d:'Mostra dígitos de 0 a 9 acendendo segmentos internos.',u:'Usa 7–8 pinos. No painel o card simula o dígito; para a placa real veja o modo avançado no README.'},
+  ntc:{n:'Sensor NTC (Kit)',cat:'amb',d:'Termistor do kit da Casa da Robótica: temperatura por leitura analógica.',u:'Monte um divisor de tensão com resistor fixo de 10kΩ e leia no pino analógico.'},
+  tcrt:{n:'Sensor TCRT5000',cat:'mov',d:'Sensor infravermelho refletivo do kit: detecta linha preta ou objetos próximos.',u:'Tem saída analógica e digital; é o coração dos seguidores de linha.'},
+  leds:{n:'LEDs Diversos',cat:'luz',d:'LEDs simples de várias cores (vermelho, verde, amarelo…).',u:'Sempre com resistor de 220Ω em série para não queimar.'},
+  resistores:{n:'Resistores 220Ω / 1kΩ / 10kΩ',cat:'comp',d:'Limitam a corrente dos LEDs e formam divisores de tensão para os sensores.',u:'220Ω para LEDs; 10kΩ junto de LDR/NTC no divisor.'},
+  jumpers:{n:'Jumpers Macho-Macho',cat:'comp',d:'Cabos de conexão entre a protoboard e a placa.',u:'Use cores para organizar: vermelho = 5V, preto = GND, outras cores = sinais.'},
+  capas:{n:'Capas Coloridas para Botões',cat:'comp',d:'Capas plásticas coloridas que encaixam nos botões.',u:'Deixam o botão mais alto e fácil de apertar — bom para projetos acessíveis.'}
+};
+/* ---------- Cards padrão (maleta 37-in-1 + kit Casa da Robótica) ---------- */
+function dev(id,nome,icone,tipo,modulo,extra){
+  return Object.assign({id:id,nome:nome,icone:icone,tipo:tipo,modulo:modulo,pins:[],unidade:'',min:0,max:100,timerP:60,agendaL:'',agendaD:'',estado:0,valor:null,timerFim:0,hist:[],desc:''},extra||{});
+}
+const PADRAO=[
+  // 💡 Luz & LEDs
+  dev('led_on','LED Onboard (D13)','💚','onoff','leds',{pins:[13]}),
+  dev('led_v','LED Vermelho','🔴','onoff','leds',{pins:[6]}),
+  dev('led_g','LED Verde','🟢','onoff','leds',{pins:[7]}),
+  dev('rgb1','LED RGB','🌈','rgb','rgb',{pins:[9,10,11]}),
+  dev('smd_rgb1','LED RGB SMD','🔵','rgb','smd_rgb',{pins:[3,5,6]}),
+  dev('bicolor1','LED Bicolor','🚦','rgb','bicolor',{pins:[6,7]}),
+  dev('flash7_1','LED 7 Cores','✨','onoff','flash7',{pins:[12]}),
+  dev('lightcup1','Magic Light Cup','🥛','onoff','lightcup',{pins:[13]}),
+  // 🔌 Atuadores
+  dev('rele1','Relé 5V','🔌','onoff','rele',{pins:[12],timerP:300}),
+  dev('laser1','Emissor Laser','🔦','onoff','laser',{pins:[8],timerP:60}),
+  dev('buzz_a1','Buzzer Ativo','🔔','onoff','buzz_a',{pins:[4],timerP:30}),
+  dev('buzz_p1','Buzzer Passivo','🎵','onoff','buzz_p',{pins:[5],timerP:30}),
+  dev('ir_emit1','Emissor IR','📡','onoff','ir_emit',{pins:[8]}),
+  // 🌡️ Ambiente
+  dev('dht_t','DHT11 · Temperatura','🌡️','sensor','dht11',{pins:[2],unidade:'°C',min:-10,max:50}),
+  dev('dht_u','DHT11 · Umidade','💧','sensor','dht11',{pins:[2],unidade:'%',min:0,max:100}),
+  dev('temp18_1','Sensor DS18B20','🌡️','sensor','ds18b20',{pins:[3],unidade:'°C',min:-10,max:50}),
+  dev('temp_d1','Digital Temp','🌡️','sensor','digital_temp',{unidade:'°C',min:-10,max:50}),
+  dev('ntc1','Sensor NTC (Kit)','🌡️','sensor','ntc',{pins:['A1'],unidade:'°C',min:0,max:50}),
+  dev('temp_a1','Analog Temp (Maleta)','🌡️','sensor','analog_temp',{pins:['A1'],unidade:'°C',min:0,max:50}),
+  dev('ldr1','Fotoresistor (LDR)','🌗','sensor','ldr',{pins:['A0'],unidade:'%',min:0,max:100}),
+  dev('chama1','Sensor de Chama','🔥','binario','flame'),
+  // 🧲 Movimento & Magnéticos
+  dev('hall_d1','Sensor Hall','🧲','binario','hall'),
+  dev('hall_lin1','Linear Hall','🧲','sensor','linear_hall',{min:0,max:1023}),
+  dev('hall_a1','Analog Hall','🧲','sensor','analog_hall',{min:0,max:1023}),
+  dev('tilt1','Tilt Switch','🧭','binario','tilt'),
+  dev('reed1','Reed Switch','🚪','binario','reed'),
+  dev('reed_m1','Mini Reed','🧲','binario','mini_reed'),
+  dev('bola1','Ball Switch','⚽','binario','ball'),
+  dev('choque1','Sensor de Choque','💥','binario','shock'),
+  dev('tap1','Tap Module','👊','binario','tap'),
+  dev('bloqueio1','Light Blocking','🚧','binario','light_blocking'),
+  dev('linha1','Tracking (Linha)','⚫','binario','tracking'),
+  dev('evita1','Avoid (Obstáculos)','🤖','binario','avoid'),
+  dev('tcrt1','Sensor TCRT5000','🛤️','sensor','tcrt',{min:0,max:100}),
+  // 🎤 Som & Interação
+  dev('som_g1','BigSound (Microfone)','🎤','sensor','bigsound',{pins:['A2'],unidade:'%',min:0,max:100}),
+  dev('som_p1','SmallSound (Microfone)','🔉','sensor','smallsound',{pins:['A2'],unidade:'%',min:0,max:100}),
+  dev('bat1','Heartbeat (Batimentos)','❤️','sensor','heartbeat',{pins:['A3'],unidade:'bpm',min:40,max:160}),
+  dev('toque1','Sensor de Toque','👆','binario','touch'),
+  dev('botao1','Botão','🔘','binario','button'),
+  // 🕹️ Controles
+  dev('joy_x','JoyStick · Eixo X','🕹️','sensor','joystick',{pins:['A4'],min:0,max:1023}),
+  dev('joy_y','JoyStick · Eixo Y','🕹️','sensor','joystick',{pins:['A5'],min:0,max:1023}),
+  dev('joy_btn','JoyStick · Botão','🕹️','binario','joystick'),
+  dev('enc1','Rotary Encoder','🎛️','sensor','encoder',{unidade:'passos',min:0,max:999}),
+  dev('pot1','Potenciômetro 10k','🎚️','sensor','pot',{pins:['A4'],min:0,max:1023}),
+  dev('display7_1','Display 7 Segmentos','🔢','display','display7'),
+  // 🧰 Componentes
+  dev('placa1','Arduino UNO SMD','🧠','placa','uno'),
+  dev('proto1','Protoboard 400 furos','🧱','info','protoboard'),
+  dev('jump1','Jumpers Macho-Macho','🧵','info','jumpers'),
+  dev('resist1','Resistores','🧮','info','resistores'),
+  dev('cabo1','Cabo USB A-B','🔗','info','cabo_usb'),
+  dev('cabo9v1','Cabo de Alimentação 9V','🔋','info','cabo9v'),
+  dev('capas1','Capas Coloridas','🧢','info','capas')
+];
+
+/* ---------- Ícones disponíveis no editor ---------- */
+const EMOJIS=['💡','🔴','🟢','🔵','🌈','🚦','✨','🥛','💚','🟡','🟠','🟣','⚡','🔌','🔋','🔔','🎵','🔊','🔉','📡','🔦','❤️','🌡️','💧','🌗','☀️','🔥','🧲','🧭','🚪','⚽','💥','👊','👆','🔘','🕹️','🎛️','🎚️','⏰','🔢','📥','🤖','⚫','🚧','🛤️','🧠','🧰','🧱','🧵','🧮','🔗','🧢','🛠️','🧪','⚙️','📞','💻','🌡'];
+
+/* ---------- Estado ---------- */
+const LSKEY='labarduino_v1';
+let state={devices:[],ui:{q:'',cat:'todos'},cfg:{tema:'tech',modo:'demo',url:'',secret:'MEU-SEGREDO-2026',intervalo:4,sincronizado:false}};
+let apiUltimaOk=0, apiFalhou=false, editandoId=null, confCb=null, ultimoEnvio=0;
+
+function carregar(){
+  try{ const raw=localStorage.getItem(LSKEY);
+    if(raw){ const s=JSON.parse(raw);
+      if(s&&Array.isArray(s.devices)&&s.devices.length){
+        state.devices=s.devices; state.ui=Object.assign(state.ui,s.ui||{}); state.cfg=Object.assign(state.cfg,s.cfg||{}); return; } }
+  }catch(e){}
+  state.devices=JSON.parse(JSON.stringify(PADRAO));
+}
+function salvar(){ try{ localStorage.setItem(LSKEY,JSON.stringify({devices:state.devices,ui:state.ui,cfg:state.cfg})); }catch(e){} }
+function porId(id){ return state.devices.find(d=>d.id===id); }
+
+/* ---------- Utilidades ---------- */
+const $=s=>document.querySelector(s);
+function pinLabel(p){ if(p===undefined||p===null||p==='')return '—'; p=String(p); return p.charAt(0)==='A'?p:('D'+p); }
+function pinsTxt(d){ if(!d.pins||!d.pins.length)return ''; return d.pins.map(pinLabel).join(' · '); }
+function fmtDur(s){ s=Math.round(s); if(s<60)return s+' s'; if(s<3600)return Math.round(s/60)+' min'; return (s/3600).toFixed(s%3600?1:0)+' h'; }
+function fmtClock(ts){ const t=new Date(ts); return ('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2)+':'+('0'+t.getSeconds()).slice(-2); }
+function fmtCd(ms){ if(ms<=0)return ''; const s=Math.max(0,Math.ceil(ms/1000)); return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2); }
+function esc(t){ return String(t===undefined||t===null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtNum(v){ if(v===null||v===undefined||isNaN(v))return '--'; const n=Number(v); return Math.abs(n)>=100?String(Math.round(n)):String(Math.round(n*10)/10); }
+function toast(msg,tipo){ const el=document.createElement('div'); el.className='toast '+(tipo||''); el.textContent=msg; $('#toasts').appendChild(el); setTimeout(()=>el.remove(),3800); }
+function confirmar(titulo,msg,cb){ $('#conf_titulo').textContent=titulo; $('#conf_msg').textContent=msg; confCb=cb; $('#mConf').classList.add('open'); }
+function abrir(id){ $(id).classList.add('open'); }
+function fechar(id){ $(id).classList.remove('open'); }
+
+/* ---------- Renderização ---------- */
+function renderChips(){
+  $('#chips').innerHTML=Object.keys(CATS).map(k=>'<button class="chip'+(state.ui.cat===k?' on':'')+'" data-cat="'+k+'">'+CATS[k].i+' '+CATS[k].n+'</button>').join('');
+}
+function filtrar(){
+  const q=state.ui.q.toLowerCase();
+  return state.devices.filter(d=>{
+    if(state.ui.cat!=='todos'){ const m=MODULOS[d.modulo]; if(!m||m.cat!==state.ui.cat)return false; }
+    if(q){ const m=MODULOS[d.modulo]; const alvo=(d.nome+' '+(m?m.n:'')+' '+pinsTxt(d)).toLowerCase(); if(alvo.indexOf(q)<0)return false; }
+    return true;
+  });
+}
+function cardHTML(d){
+  const m=MODULOS[d.modulo]||{n:'',cat:'comp'};
+  const sub=[pinsTxt(d),m.n].filter(Boolean).join(' · ');
+  let corpo='';
+  if(d.tipo==='onoff')corpo=corpoOnoff(d);
+  else if(d.tipo==='sensor')corpo=corpoSensor(d);
+  else if(d.tipo==='binario')corpo=corpoBinario(d);
+  else if(d.tipo==='rgb')corpo=corpoRgb(d);
+  else if(d.tipo==='display')corpo=corpoDisplay(d);
+  else if(d.tipo==='placa')corpo=corpoPlaca(d);
+  else corpo='<div class="info-d">'+esc(d.desc||m.d||'')+'</div>';
+  return '<div class="card" data-id="'+d.id+'">'
+    +'<div class="chead"><span class="ic">'+d.icone+'</span><div><h3>'+esc(d.nome)+'</h3><span class="sub">'+esc(sub)+'</span></div>'
+    +'<div class="hbtns"><button class="hbtn" data-act="info" title="O que é isso?">❓</button>'
+    +'<button class="hbtn edit-only" data-act="edit" title="Editar card">✏️</button>'
+    +'<button class="hbtn edit-only" data-act="del" title="Remover card">🗑️</button></div></div>'
+    +'<div class="cbody">'+corpo+'</div>'
+    +'<div class="cardfoot"><span>'+esc(CATS[m.cat]?CATS[m.cat].n:'')+'</span><span data-role="foot">'+footTxt(d)+'</span></div>'
+    +'</div>';
+}
+function footTxt(d){
+  if(d.tipo==='onoff'||d.tipo==='rgb'||d.tipo==='display'||d.tipo==='pwm') return d.estado?'LIGADO':'desligado';
+  if(d.tipo==='binario') return d.valor?'ATIVADO':'—';
+  if(d.tipo==='sensor'&&d.hist.length) return fmtNum(d.hist[d.hist.length-1].v)+' '+esc(d.unidade||'');
+  return '';
+}
+function corpoOnoff(d){
+  const un=d.timerP<60?'s':(d.timerP<3600?'m':'h');
+  const num=un==='s'?Math.max(1,d.timerP):(un==='m'?Math.max(1,Math.round(d.timerP/60)):(d.timerP/3600));
+  let h='<div class="rowc"><button class="power'+(d.estado?' on':'')+'" data-act="power">'+(d.estado?'ON':'OFF')+'</button>'
+    +'<div class="timerbox"><div class="trow">'
+    +'<input type="number" min="1" value="'+num+'" data-role="tnum">'
+    +'<select data-role="tun"><option value="s"'+(un==='s'?' selected':'')+'>s</option><option value="m"'+(un==='m'?' selected':'')+'>min</option><option value="h"'+(un==='h'?' selected':'')+'>h</option></select>'
+    +'<button class="tbtn2" data-act="timer">⏱ Ligar</button></div>'
+    +'<div class="presets">'+[30,60,300,600].map(s=>'<button class="preset" data-act="preset" data-s="'+s+'">'+fmtDur(s)+'</button>').join('')+'</div>'
+    +'<div class="cd" data-role="cd"></div></div></div>';
+  if(d.agendaL||d.agendaD)h+='<div class="ag">⏰ '+(d.agendaL||'—')+' → '+(d.agendaD||'—')+'</div>';
+  return h;
+}
+function corpoSensor(d){
+  return '<div class="bignum-row"><span class="val" data-role="val">--</span><small>'+esc(d.unidade||'')+'</small></div>'
+    +'<canvas class="spark" data-role="spark" width="220" height="42"></canvas>'
+    +'<div class="upd" data-role="upd">'+(d.hist.length?('atualizado '+fmtClock(d.hist[d.hist.length-1].t)):'aguardando leituras…')+'</div>';
+}
+function corpoBinario(d){
+  return '<div class="bin"><span class="dot'+(d.valor?' on':'')+'" data-role="dot"></span><span class="bv" data-role="bv">'+(d.valor?'ATIVADO':'tranquilo')+'</span></div>'
+    +'<div class="upd" data-role="upd">'+(d.hist.length?('última mudança '+fmtClock(d.hist[d.hist.length-1].t)):'aguardando…')+'</div>';
+}
+function rgbCor(d){ const v=String(d.valor||'0,0,0').split(',').slice(0,3).map(x=>Math.max(0,Math.min(255,Number(x)||0))); while(v.length<3)v.push(0); return 'rgb('+v.join(',')+')'; }
+function corpoRgb(d){
+  const ch=Math.max(2,Math.min(3,d.pins.length||3));
+  const rot=['R','G','B'];
+  const vals=String(d.valor||'').split(',').map(Number);
+  let sl='';
+  for(let i=0;i<ch;i++){ const v=vals[i]||0;
+    sl+='<div class="srow"><label>'+rot[i]+'</label><input type="range" min="0" max="255" value="'+v+'" data-role="ch" data-i="'+i+'"><span class="sv" data-role="sv'+i+'">'+v+'</span></div>';
+  }
+  return '<div class="sliders">'+sl+'</div>'
+    +'<div class="swatch" data-role="swatch" style="background:'+rgbCor(d)+'"></div>'
+    +'<div class="rgbpre"><button data-act="rgbpre" data-c="255,0,0">🔴</button><button data-act="rgbpre" data-c="0,255,0">🟢</button><button data-act="rgbpre" data-c="0,0,255">🔵</button><button data-act="rgbpre" data-c="255,255,255">⚪</button><button data-act="rgbpre" data-c="0,0,0">⬛</button></div>';
+}
+function corpoDisplay(d){
+  const v=Math.max(0,Math.min(9,Math.round(Number(d.valor)||0)));
+  return '<div class="digit" data-role="digit">'+v+'</div>'
+    +'<input type="range" min="0" max="9" value="'+v+'" data-role="disp">';
+}
+function corpoPlaca(d){
+  const ok=placaOk();
+  return '<div class="placa-st"><span class="dot'+(ok?' on':'')+'"></span><div><div class="bv">'+(ok?'Ligada na USB ✓':'Não ligada')+'</div>'
+    +'<div class="upd" data-role="upd">'+(SER.okEm?('resposta '+fmtClock(SER.okEm)):'clique 🔌 Placa no topo')+'</div></div></div>'
+    +'<div class="info-d">Ela recebe os comandos do painel e devolve as leituras dos sensores. Use o botão 🔌 Placa (Chrome/Edge no computador) para ligá-la pela USB.</div>';
+}
+function placaOk(){ return !!SER.port; }
+function connOk(){ return state.cfg.modo==='api' && apiUltimaOk>0 && (Date.now()-apiUltimaOk)<45000; }
+
+function drawSpark(cv,hist){
+  const w=cv.width,hh=cv.height,ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,w,hh);
+  const cs=getComputedStyle(document.documentElement);
+  ctx.strokeStyle=(cs.getPropertyValue('--acc')||'#22d3ee').trim();
+  ctx.lineWidth=2; ctx.lineJoin='round';
+  if(hist.length<2){ ctx.beginPath(); ctx.setLineDash([4,4]); ctx.moveTo(2,hh-4); ctx.lineTo(w-2,hh-4); ctx.stroke(); ctx.setLineDash([]); return; }
+  let mn=Infinity,mx=-Infinity;
+  for(const p of hist){ mn=Math.min(mn,p.v); mx=Math.max(mx,p.v); }
+  if(mx-mn<0.001){ mn-=1; mx+=1; }
+  const pad=4, X=i=>2+(w-4)*i/(hist.length-1), Y=v=>hh-pad-(hh-2*pad)*((v-mn)/(mx-mn));
+  ctx.beginPath();
+  hist.forEach((p,i)=>{ if(i)ctx.lineTo(X(i),Y(p.v)); else ctx.moveTo(X(i),Y(p.v)); });
+  ctx.stroke();
+}
+function atualizarCard(d){
+  const el=document.querySelector('.card[data-id="'+d.id+'"]'); if(!el)return;
+  const q=r=>el.querySelector('[data-role="'+r+'"]');
+  if(d.tipo==='sensor'&&q('val')){
+    q('val').textContent=fmtNum(d.valor);
+    const cv=q('spark'); if(cv)drawSpark(cv,d.hist);
+    if(q('upd'))q('upd').textContent=d.hist.length?('atualizado '+fmtClock(d.hist[d.hist.length-1].t)):'aguardando leituras…';
+  }else if(d.tipo==='binario'&&q('dot')){
+    q('dot').className='dot'+(d.valor?' on':'');
+    q('bv').textContent=d.valor?'ATIVADO':'tranquilo';
+    if(q('upd'))q('upd').textContent=d.hist.length?('última mudança '+fmtClock(d.hist[d.hist.length-1].t)):'aguardando…';
+  }else if(d.tipo==='onoff'&&q('cd')){
+    const pw=el.querySelector('.power'); if(pw){pw.className='power'+(d.estado?' on':'');pw.textContent=d.estado?'ON':'OFF';}
+  }else if(d.tipo==='rgb'){
+    const vals=String(d.valor||'').split(',').map(Number);
+    for(let i=0;i<3;i++){ const sv=q('sv'+i); if(sv&&vals[i]!==undefined&&vals[i]!==null&&!isNaN(vals[0]))sv.textContent=Math.max(0,vals[i]||0); }
+    const sw=q('swatch'); if(sw)sw.style.background=rgbCor(d);
+    const chs=el.querySelectorAll('[data-role="ch"]');
+    chs.forEach((c,i)=>{ if(vals[i]!==undefined&&!isNaN(vals[0]))c.value=Math.max(0,vals[i]||0); });
+  }else if(d.tipo==='display'&&q('digit')){
+    const v=Math.max(0,Math.min(9,Math.round(Number(d.valor)||0)));
+    q('digit').textContent=v; const dp=el.querySelector('[data-role="disp"]'); if(dp)dp.value=v;
+  }else if(d.tipo==='placa'&&q('upd')){
+    const ok=placaOk();
+    el.querySelector('.dot').className='dot'+(ok?' on':'');
+    el.querySelector('.bv').textContent=ok?'Ligada na USB ✓':'Não ligada';
+    q('upd').textContent=SER.okEm?('resposta '+fmtClock(SER.okEm)):'clique 🔌 Placa no topo';
+  }
+  const foot=el.querySelector('[data-role="foot"]'); if(foot)foot.innerHTML=footTxt(d);
+}
+function render(){
+  renderChips();
+  const lista=filtrar();
+  $('#grid').innerHTML=lista.map(cardHTML).join('')+'<div class="addcard" id="addcard"><div style="font-size:30px">➕</div>Adicionar card</div>';
+  for(const d of lista)atualizarCard(d);
+}
+/* ---------- Placa USB (Web Serial: o navegador fala com o Arduino) ---------- */
+const SER={port:null,escritor:null,ativos:false,okEm:0,buf:'',fila:Promise.resolve()};
+function serialSuporte(){ return !!(navigator.serial&&window.isSecureContext); }
+async function placaConectar(){
+  if(!serialSuporte()){ toast('Para ligar a placa, abra o painel no computador com Chrome ou Edge','err'); return; }
+  try{
+    const port=await navigator.serial.requestPort();
+    await port.open({baudRate:9600});
+    SER.port=port; SER.buf=''; SER.ativos=true; SER.okEm=Date.now();
+    SER.escritor=port.writable.getWriter();
+    toast('🔌 Placa ligada na USB!','ok');
+    lerSerial();
+    configurarPinosPlaca();
+    replayEstados();
+    ultimoSensor=0; pollSensores();
+    setPill();
+  }catch(e){ toast('Não consegui abrir a porta: '+e.message,'err'); }
+}
+async function placaDesconectar(){
+  SER.ativos=false;
+  try{ if(SER.escritor){SER.escritor.releaseLock();SER.escritor=null;} if(SER.port)await SER.port.close(); }catch(e){}
+  SER.port=null; setPill(); toast('Placa desconectada da USB');
+}
+if(navigator.serial&&navigator.serial.addEventListener)navigator.serial.addEventListener('disconnect',()=>{
+  if(SER.port){ SER.port=null; SER.escritor=null; SER.ativos=false; setPill(); toast('⚠️ A placa saiu do USB','err'); }
+});
+function serialCmd(linha){
+  if(!SER.port||!SER.escritor)return;
+  SER.fila=SER.fila.then(()=>SER.escritor.write(new TextEncoder().encode(linha+'\n'))).catch(()=>{});
+}
+async function lerSerial(){
+  try{
+    const dec=new TextDecoderStream();
+    SER.port.readable.pipeTo(dec.writable).catch(()=>{});
+    const leitor=dec.readable.getReader();
+    while(SER.ativos){
+      const {value,done}=await leitor.read();
+      if(done)break;
+      SER.buf+=value;
+      let i;
+      while((i=SER.buf.indexOf('\n'))>=0){
+        const linha=SER.buf.slice(0,i).trim();
+        SER.buf=SER.buf.slice(i+1);
+        if(linha)tratarResposta(linha);
+      }
+      if(SER.buf.length>300)SER.buf='';
+    }
+  }catch(e){}
+}
+function tratarResposta(linha){
+  SER.okEm=Date.now();
+  if(linha.indexOf('VAL ')===0){
+    const p=linha.split(' ');
+    if(p.length>=3)receberLeitura(p[1],p.slice(2).join(' '));
+  }
+}
+function receberLeitura(pin,resto){
+  const alvos=state.devices.filter(d=>(d.tipo==='sensor'||d.tipo==='binario')&&d.pins&&d.pins.length&&String(d.pins[0])===String(pin));
+  if(!alvos.length)return;
+  if(resto.indexOf(':')>=0){                    // DHT11 responde "235:567" = 23,5 °C : 56,7 %
+    const th=resto.split(':').map(Number);
+    for(const d of alvos)aplicarLeitura(d,(/t$|temp/i.test(d.id)?th[0]:th[1])/10);
+  }else{
+    const v=Number(resto);
+    for(const d of alvos){
+      let val=v;
+      if(d.tipo==='binario')val=v?1:0;
+      else if(String(pin).charAt(0)==='A'&&Number(d.max)<=100)val=Math.round(v*100/1023*10)/10; // 0–1023 → %
+      aplicarLeitura(d,val);
+    }
+  }
+}
+function aplicarLeitura(d,v){
+  if(v===null||v===undefined||isNaN(v))return;
+  if(d.tipo==='binario'){ if(d.valor===v)return; d.valor=v; }
+  else d.valor=v;
+  pushHist(d,v); atualizarCard(d);
+  postarLeitura(d,v);
+}
+let ultPostLeitura={}, ultimoSensor=0;
+function postarLeitura(d,v){
+  if(!(state.cfg.modo==='api'&&state.cfg.url))return;
+  const agora=Date.now();
+  if(ultPostLeitura[d.id]&&agora-ultPostLeitura[d.id]<Math.max(2,state.cfg.intervalo)*1000-300)return;
+  ultPostLeitura[d.id]=agora;
+  apiPost({action:'leitura',id:d.id,valor:v}).catch(()=>{});
+}
+function configurarPinosPlaca(){
+  for(const d of state.devices){
+    if(!d.pins||!d.pins.length)continue;
+    if(d.tipo==='onoff'||d.tipo==='pwm'||d.tipo==='rgb'||d.tipo==='display'){
+      for(const p of d.pins)serialCmd('MODE '+p+' OUTPUT');
+    }else if(d.tipo==='binario'){
+      for(const p of d.pins)if(String(p).charAt(0)!=='A')serialCmd('MODE '+p+' INPUTPULLUP');
+    }
+  }
+}
+function replayEstados(){
+  for(const d of state.devices){
+    if(d.tipo==='onoff'&&d.estado)executarNaPlaca(d,1);
+    else if(d.tipo==='pwm'&&Number(d.valor)>0)executarNaPlaca(d,d.valor);
+    else if(d.tipo==='rgb'&&d.valor&&String(d.valor)!=='0,0,0')executarNaPlaca(d,d.valor);
+  }
+}
+function executarNaPlaca(d,valor){
+  if(!SER.port||!d.pins||!d.pins.length)return false;
+  const p=d.pins[0];
+  if(d.tipo==='onoff')serialCmd('SET '+p+' '+(Number(valor)?1:0));
+  else if(d.tipo==='pwm')serialCmd('PWM '+p+' '+Math.round(Math.max(0,Math.min(100,Number(valor)||0))*2.55));
+  else if(d.tipo==='rgb'){
+    const arr=String(valor||'0,0,0').split(',');
+    d.pins.slice(0,3).forEach((pin,i)=>serialCmd('PWM '+pin+' '+Math.max(0,Math.min(255,Math.round(Number(arr[i])||0)))));
+  }
+  else return false;
+  return true;
+}
+/* executa na placa os comandos pendentes na planilha (timers e agendas cumpridos no servidor) */
+async function pollComandos(){
+  if(!SER.port||!(state.cfg.modo==='api'&&state.cfg.url))return;
+  try{
+    const j=await apiGet({action:'comandos'});
+    for(const c of (j.comandos||[])){
+      const d=porId(c.id);
+      if(d&&executarNaPlaca(d,c.valor)&&d.tipo==='onoff'){
+        d.estado=Number(c.valor)?1:0;
+        d.timerFim=(d.estado&&Number(c.timer_s)>0)?Date.now()+Number(c.timer_s)*1000:0;
+        atualizarCard(d); salvar();
+      }
+      apiPost({action:'ack',cmd_id:c.cmd_id}).catch(()=>{});
+    }
+  }catch(e){}
+}
+/* pergunta às leituras: sensores e botões ligados na placa */
+function pollSensores(){
+  if(!SER.port)return;
+  const agora=Date.now();
+  if(agora-ultimoSensor<Math.max(2,state.cfg.intervalo)*1000-300)return;
+  ultimoSensor=agora;
+  const jaFoi={};
+  for(const d of state.devices){
+    if((d.tipo!=='sensor'&&d.tipo!=='binario')||!d.pins||!d.pins.length)continue;
+    const base=d.modulo==='dht11'?'DHT':(d.modulo==='ds18b20'?'OW':'GET');
+    const chave=base+' '+d.pins[0];           // DHT com 2 cards no mesmo pino pergunta 1× só
+    if(jaFoi[chave])continue; jaFoi[chave]=1;
+    serialCmd(chave);
+  }
+}
+setInterval(pollComandos,3000);
+setInterval(pollSensores,1500);
+
+/* ---------- Comandos ---------- */
+const ultimoPorDev={};
+function enviarComando(d,valor,timerS){
+  if(SER.port)executarNaPlaca(d,valor);          // placa ligada: executa já
+  if(state.cfg.modo!=='api'||!state.cfg.url)return;
+  const agora=Date.now();
+  if(ultimoPorDev[d.id]&&ultimoPorDev[d.id].v===String(valor)&&agora-ultimoPorDev[d.id].t<600)return;
+  ultimoPorDev[d.id]={v:String(valor),t:agora};
+  apiPost({action:'comando',id:d.id,valor:String(valor),timer_s:timerS||0})
+    .catch(e=>toast('Falha ao enviar comando: '+e.message,'err'));
+  if(SER.port)apiPost({action:'estado_dev',id:d.id,estado:d.estado}).catch(()=>{});
+}
+function ligarPor(d,seg){
+  d.estado=1; d.timerFim=seg>0?(Date.now()+seg*1000):0;
+  enviarComando(d,1,seg||0);
+  atualizarCard(d); salvar();
+  if(seg>0)toast(d.icone+' '+d.nome+' ligado por '+fmtDur(seg),'ok');
+}
+function desligar(d){
+  d.estado=0; d.timerFim=0;
+  enviarComando(d,0,0);
+  atualizarCard(d); salvar();
+}
+function toggle(d){ if(d.estado)desligar(d); else ligarPor(d,0); }
+function setPwm(d,v){ d.valor=v; d.estado=v>0?1:0; enviarComando(d,v,0); atualizarCard(d); salvar(); }
+function setRgb(d,arr){ d.valor=arr.join(','); d.estado=arr.some(x=>x>0)?1:0; enviarComando(d,d.valor,0); atualizarCard(d); salvar(); }
+function setDisplay(d,v){ d.valor=v; d.estado=v>0?1:0; enviarComando(d,v,0); atualizarCard(d); salvar(); }
+function pushHist(d,v){ d.hist.push({t:Date.now(),v:v}); if(d.hist.length>90)d.hist.splice(0,d.hist.length-90); }
+
+/* ---------- Timers e agendas (contagem regressiva) ---------- */
+function tick(){
+  const agora=Date.now();
+  for(const d of state.devices){
+    if(d.timerFim>0){
+      if(d.timerFim<=agora){ const nome=d.nome; desligar(d); toast('⏳ '+nome+' desligado (timer)'); }
+      else{ const el=document.querySelector('.card[data-id="'+d.id+'"] [data-role="cd"]'); if(el)el.textContent='⏳ desliga em '+fmtCd(d.timerFim-agora); }
+    }else if(d.tipo==='onoff'){
+      const el=document.querySelector('.card[data-id="'+d.id+'"] [data-role="cd"]');
+      if(el&&el.textContent)el.textContent='';
+    }
+  }
+  if(state.cfg.modo!=='api')checarAgendas();
+}
+function checarAgendas(){
+  const t=new Date();
+  const hm=('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2);
+  const dia=t.toDateString();
+  for(const d of state.devices){
+    if(d.agendaL===hm&&d._agL!==dia){ d._agL=dia; if(!d.estado)ligarPor(d,0); }
+    if(d.agendaD===hm&&d._agD!==dia){ d._agD=dia; if(d.estado)desligar(d); }
+  }
+}
+setInterval(tick,500);
+
+/* ---------- Simulação DEMO (sem placa) ---------- */
+function ruido(a){ return (Math.random()-0.5)*2*a; }
+function clampN(v,mi,ma){ return Math.max(mi,Math.min(ma,v)); }
+function walk(d,centro,passo,mi,ma){
+  const c=(d.valor===null||d.valor===undefined||isNaN(Number(d.valor)))?centro:Number(d.valor);
+  return Math.round(clampN(c+ruido(passo),mi,ma));
+}
+function demoValor(d,t){
+  if(d.id==='dht_t')return Math.round((23.5+3*Math.sin(t/600)+ruido(0.5))*10)/10;
+  if(d.id==='dht_u')return Math.round(clampN(55+8*Math.sin(t/900)+ruido(1.5),20,99));
+  switch(d.modulo){
+    case 'ds18b20': case 'digital_temp': case 'ntc': case 'analog_temp': return Math.round((24+2*Math.sin(t/700)+ruido(0.4))*10)/10;
+    case 'ldr': return Math.round(clampN(55+30*Math.sin(t/1200)+ruido(4),0,100));
+    case 'bigsound': case 'smallsound': return Math.random()<0.12?Math.round(45+Math.random()*50):Math.round(clampN(10+ruido(7),0,100));
+    case 'heartbeat': return Math.round(74+5*Math.sin(t/20)+ruido(2.5));
+    case 'linear_hall': case 'analog_hall': return Math.round(clampN(512+ruido(25),0,1023));
+    case 'joystick': case 'pot': return walk(d,512,45,0,1023);
+    case 'encoder': return walk(d,100,4,0,999);
+    case 'tcrt': return Math.round(clampN(40+ruido(12),0,100));
+    default: return Math.round(clampN(50+ruido(10),0,1023));
+  }
+}
+function demoBin(d){
+  const cur=d.valor?1:0;
+  if(cur)return Math.random()<0.35?1:0;
+  return Math.random()<0.03?1:0;
+}
+function demoTick(){
+  if(state.cfg.modo==='api'||SER.port)return;
+  const t=Date.now()/1000;
+  for(const d of state.devices){
+    if(d.tipo==='sensor'){ d.valor=demoValor(d,t); pushHist(d,d.valor); }
+    else if(d.tipo==='binario'){ const v=demoBin(d); if(v!==d.valor){ d.valor=v; pushHist(d,v); } }
+  }
+  for(const d of filtrar())atualizarCard(d);
+}
+setInterval(demoTick,2000);
+
+/* ---------- API do Google Apps Script ---------- */
+let ultimaPoll=0;
+function apiUrl(params){
+  const u=state.cfg.url;
+  const qs=Object.keys(params).map(k=>encodeURIComponent(k)+'='+encodeURIComponent(params[k])).join('&');
+  return u+(u.indexOf('?')<0?'?':'&')+qs;
+}
+async function apiGet(params){
+  params=params||{}; params.token=state.cfg.secret;
+  const r=await fetch(apiUrl(params));
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.json();
+}
+async function apiPost(obj){
+  obj.token=state.cfg.secret;
+  const r=await fetch(state.cfg.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(obj)});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.json();
+}
+function setPill(){
+  const el=$('#conn'), bp=$('#bPlaca');
+  if(SER.port){
+    el.className='pill ok'; el.textContent='PLACA ✓';
+    if(bp){ bp.classList.add('on'); bp.textContent='🔌 Ligada'; }
+  }else{
+    if(state.cfg.modo!=='api'){ el.className='pill demo'; el.textContent='DEMO'; }
+    else if(connOk()){ el.className='pill ok'; el.textContent='CONECTADO'; }
+    else{ el.className='pill err'; el.textContent='OFFLINE'; }
+    if(bp){ bp.classList.remove('on'); bp.textContent='🔌 Placa'; }
+  }
+  const pl=porId('placa1'); if(pl)atualizarCard(pl);
+}
+async function poll(){
+  if(state.cfg.modo!=='api'||!state.cfg.url)return;
+  const agora=Date.now();
+  if(agora-ultimaPoll<Math.max(2,state.cfg.intervalo)*1000-300)return;
+  ultimaPoll=agora;
+  try{
+    const j=await apiGet({action:'estado'});
+    apiUltimaOk=Date.now(); apiFalhou=false; setPill();
+    if(j.devices)for(const rd of j.devices){
+      const d=porId(rd.id); if(!d)continue;
+      if(rd.estado!==undefined&&rd.estado!==null&&Number(rd.estado)!==d.estado){ d.estado=Number(rd.estado)?1:0; atualizarCard(d); }
+      if(rd.timer_fim&&Number(rd.timer_fim)>0)d.timerFim=Number(rd.timer_fim);
+      if(rd.leitura&&rd.leitura.v!==undefined&&rd.leitura.v!==null&&rd.leitura.v!==''){
+        if(d.tipo==='binario'){ const nv=Number(rd.leitura.v)?1:0; if(nv!==d.valor){d.valor=nv;pushHist(d,nv);} }
+        else if(d.tipo==='sensor'){ d.valor=Number(rd.leitura.v); pushHist(d,d.valor); }
+        else{ d.valor=rd.leitura.v; }
+        atualizarCard(d);
+      }
+    }
+    if(!state.cfg.sincronizado)sincronizar(true);
+  }catch(e){
+    if(!apiFalhou){ apiFalhou=true; setPill(); toast('Sem resposta do servidor: '+e.message,'err'); }
+  }
+}
+setInterval(poll,1500);
+async function sincronizar(silencioso){
+  if(state.cfg.modo!=='api'||!state.cfg.url)return;
+  try{
+    await apiPost({action:'dispositivos',lista:state.devices.map(d=>({id:d.id,nome:d.nome,tipo:d.tipo,modulo:d.modulo,pins:(d.pins||[]).join(','),agenda_ligar:d.agendaL,agenda_desligar:d.agendaD}))});
+    state.cfg.sincronizado=true; salvar();
+    if(!silencioso)toast('Cards sincronizados com a planilha ✓','ok');
+  }catch(e){ if(!silencioso)toast('Falha ao sincronizar: '+e.message,'err'); }
+}
+
+/* ---------- Interações na grade ---------- */
+$('#busca').addEventListener('input',e=>{ state.ui.q=e.target.value; render(); });
+$('#chips').addEventListener('click',e=>{ const b=e.target.closest('[data-cat]'); if(!b)return; state.ui.cat=b.dataset.cat; render(); });
+$('#grid').addEventListener('click',e=>{
+  if(e.target.dataset&&e.target.dataset.role==='spark'){
+    const card=e.target.closest('.card'); const d=porId(card.dataset.id); if(d)abrirGrafico(d); return;
+  }
+  const add=e.target.closest('#addcard'); if(add){ abrirEditor(null); return; }
+  const b=e.target.closest('[data-act]'); if(!b)return;
+  const card=e.target.closest('.card'); if(!card)return;
+  const d=porId(card.dataset.id); if(!d)return;
+  const act=b.dataset.act;
+  if(act==='power')toggle(d);
+  else if(act==='timer'){
+    const inp=card.querySelector('[data-role="tnum"]'),un=card.querySelector('[data-role="tun"]');
+    const mult=un.value==='h'?3600:(un.value==='m'?60:1);
+    ligarPor(d,Math.max(1,Math.round(Number(inp.value)||1)*mult));
+  }
+  else if(act==='preset')ligarPor(d,Number(b.dataset.s)||60);
+  else if(act==='rgbpre')setRgb(d,String(b.dataset.c).split(',').map(Number));
+  else if(act==='info')mostrarInfo(d);
+  else if(act==='edit')abrirEditor(d.id);
+  else if(act==='del')confirmar('Remover card','Remover “'+d.nome+'” do painel?',()=>{
+    state.devices=state.devices.filter(x=>x.id!==d.id); salvar(); render(); toast('Card removido');
+  });
+});
+$('#grid').addEventListener('input',e=>{
+  const el=e.target.closest('[data-role]'); if(!el)return;
+  const card=e.target.closest('.card'); if(!card)return;
+  const d=porId(card.dataset.id); if(!d)return;
+  if(el.dataset.role==='ch'){
+    const arr=String(d.valor||'0,0,0').split(',').map(Number);
+    const i=Number(el.dataset.i); arr[i]=Number(el.value);
+    const sv=card.querySelector('[data-role="sv'+i+'"]'); if(sv)sv.textContent=el.value;
+    const sw=card.querySelector('[data-role="swatch"]'); if(sw)sw.style.background=rgbCor({valor:arr.join(',')});
+    setRgb(d,arr);
+  }else if(el.dataset.role==='disp'){
+    setDisplay(d,Number(el.value));
+  }
+});
+
+/* ---------- Tema, edição e janelas ---------- */
+function aplicarTema(){
+  document.documentElement.dataset.theme=state.cfg.tema;
+  $('#tTech').className='tbtn'+(state.cfg.tema==='tech'?' on':'');
+  $('#tClaro').className='tbtn'+(state.cfg.tema==='claro'?' on':'');
+  $('#tCel').className='tbtn'+(state.cfg.tema==='cel'?' on':'');
+}
+$('#tTech').onclick=()=>{ state.cfg.tema='tech'; aplicarTema(); salvar(); render(); };
+$('#tClaro').onclick=()=>{ state.cfg.tema='claro'; aplicarTema(); salvar(); render(); };
+$('#tCel').onclick=()=>{ state.cfg.tema='cel'; aplicarTema(); salvar(); render(); };
+$('#bEditar').onclick=()=>{ document.body.classList.toggle('editing'); $('#bEditar').classList.toggle('on'); };
+$('#bPlaca').onclick=()=>{ if(SER.port)placaDesconectar(); else placaConectar(); };
+if(!serialSuporte())$('#bPlaca').style.display='none';
+$('#bConfig').onclick=abrirConfig;
+$('#bAjuda').onclick=()=>abrir('#mAjuda');
+document.querySelectorAll('.modal-ov').forEach(ov=>ov.addEventListener('click',e=>{ if(e.target===ov)ov.classList.remove('open'); }));
+
+function tipoNome(t){ return ({onoff:'Atuador liga/desliga',pwm:'Dimmer',rgb:'RGB / multicanal',sensor:'Sensor numérico',binario:'Sensor liga/desliga',display:'Display 0–9',placa:'Status da placa',info:'Componente informativo'})[t]||t; }
+function mostrarInfo(d){
+  const m=MODULOS[d.modulo]||{n:d.nome,d:'Módulo personalizado criado por você.',u:''};
+  const ov=document.createElement('div'); ov.className='modal-ov open';
+  ov.innerHTML='<div class="modal" style="max-width:480px"><h2>'+d.icone+' '+esc(d.nome)+'</h2>'
+    +'<h4>O que é</h4><p class="info-d">'+esc(d.desc||m.d||'')+'</p>'
+    +(m.u?'<h4>Como usar na placa</h4><p class="info-d">'+esc(m.u)+'</p>':'')
+    +'<h4>No painel</h4><p class="info-d">Tipo: <b>'+esc(tipoNome(d.tipo))+'</b>'
+    +(pinsTxt(d)?(' · Pinos: <b>'+esc(pinsTxt(d))+'</b>'):' · Pino: ainda não definido (mude no ✏️ editar)')+'</p>'
+    +'<div class="mfoot"><button class="btn pri">Fechar</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',e=>{ if(e.target===ov)ov.remove(); });
+  ov.querySelector('.btn').addEventListener('click',()=>ov.remove());
+}
+
+/* ---------- Editor de cards ---------- */
+let iconeSel='💡';
+function abrirEditor(id){
+  editandoId=id;
+  const d=id?porId(id):null;
+  $('#mEditTitulo').textContent=d?('✏️ Editar: '+d.nome):'➕ Novo card';
+  $('#f_excluir').style.display=d?'inline-block':'none';
+  $('#f_nome').value=d?d.nome:'';
+  $('#f_tipo').value=d?d.tipo:'onoff';
+  $('#f_pins').value=d?(d.pins||[]).join(','):'';
+  $('#f_unidade').value=d?d.unidade:'';
+  $('#f_min').value=d?d.min:0; $('#f_max').value=d?d.max:100;
+  $('#f_timer').value=d?d.timerP:60;
+  $('#f_agl').value=d?d.agendaL:''; $('#f_agd').value=d?d.agendaD:'';
+  $('#f_desc').value=d?d.desc:'';
+  $('#f_modulo').innerHTML='<option value="">— nenhum —</option>'+Object.keys(MODULOS).map(k=>'<option value="'+k+'">'+MODULOS[k].n+'</option>').join('');
+  $('#f_modulo').value=d?d.modulo:'';
+  iconeSel=d?d.icone:'💡';
+  $('#f_icones').innerHTML=EMOJIS.map(e=>'<button data-e="'+e+'" class="'+(iconeSel===e?'on':'')+'">'+e+'</button>').join('');
+  abrir('#mEdit');
+}
+$('#f_icones').addEventListener('click',e=>{
+  const b=e.target.closest('[data-e]'); if(!b)return;
+  iconeSel=b.dataset.e;
+  $('#f_icones').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.e===iconeSel));
+});
+$('#f_modulo').addEventListener('change',e=>{
+  const m=MODULOS[e.target.value];
+  if(m&&!$('#f_nome').value.trim())$('#f_nome').value=m.n;
+});
+$('#f_cancel').onclick=()=>fechar('#mEdit');
+$('#f_salvar').onclick=()=>{
+  const nome=$('#f_nome').value.trim()||'Novo card';
+  const tipo=$('#f_tipo').value;
+  const pins=$('#f_pins').value.split(',').map(s=>s.trim()).filter(Boolean).map(s=>{
+    const m=String(s).toUpperCase().match(/^A(\d+)$/);
+    return m?('A'+m[1]):parseInt(s,10);
+  }).filter(p=>!isNaN(p));
+  const dados={nome:nome,icone:iconeSel,tipo:tipo,modulo:$('#f_modulo').value||'',pins:pins,
+    unidade:tipo==='sensor'?$('#f_unidade').value.trim():'',
+    min:Number($('#f_min').value)||0,max:Number($('#f_max').value)||100,
+    timerP:Math.max(1,Number($('#f_timer').value)||60),
+    agendaL:$('#f_agl').value||'',agendaD:$('#f_agd').value||'',
+    desc:$('#f_desc').value.trim()};
+  if(editandoId){ Object.assign(porId(editandoId),dados); }
+  else{
+    let base=nome.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'card';
+    let id=base,n=2;
+    while(porId(id))id=base+'_'+(n++);
+    state.devices.push(Object.assign(dev(id,nome,iconeSel,tipo,dados.modulo),dados));
+  }
+  salvar(); render(); fechar('#mEdit'); toast('Card salvo ✓','ok');
+};
+$('#f_excluir').onclick=()=>{
+  if(!editandoId)return;
+  const d=porId(editandoId);
+  fechar('#mEdit');
+  confirmar('Excluir card','Remover “'+d.nome+'” definitivamente?',()=>{
+    state.devices=state.devices.filter(x=>x.id!==d.id); salvar(); render(); toast('Card excluído');
+  });
+};
+
+/* ---------- Configurações ---------- */
+function abrirConfig(){
+  $('#c_modo').value=state.cfg.modo; $('#c_url').value=state.cfg.url;
+  $('#c_secret').value=state.cfg.secret; $('#c_int').value=state.cfg.intervalo;
+  abrir('#mConfig');
+}
+function cfgSalvar(){
+  state.cfg.modo=$('#c_modo').value;
+  state.cfg.url=$('#c_url').value.trim();
+  state.cfg.secret=$('#c_secret').value.trim();
+  state.cfg.intervalo=clampN(Number($('#c_int').value)||4,2,120);
+  salvar(); setPill();
+}
+['#c_modo','#c_url','#c_secret','#c_int'].forEach(s=>$(s).addEventListener('change',cfgSalvar));
+$('#c_testar').onclick=async()=>{
+  cfgSalvar();
+  try{ await apiGet({action:'ping'}); toast('Conexão OK! A planilha respondeu ✓','ok'); sincronizar(true); }
+  catch(e){ toast('Falhou: '+e.message,'err'); }
+};
+$('#c_sync').onclick=()=>{ cfgSalvar(); sincronizar(false); };
+$('#c_salvar_drive').onclick=async()=>{
+  cfgSalvar();
+  try{ await apiPost({action:'config',config:JSON.stringify({devices:state.devices,ui:state.ui})}); toast('Layout salvo no Drive ✓','ok'); }
+  catch(e){ toast('Falhou: '+e.message,'err'); }
+};
+$('#c_carregar_drive').onclick=async()=>{
+  cfgSalvar();
+  try{
+    const j=await apiGet({action:'estado'});
+    if(j.config){ aplicarLayout(JSON.parse(j.config)); }
+    else toast('Nenhum layout salvo no servidor ainda');
+  }catch(e){ toast('Falhou: '+e.message,'err'); }
+};
+function aplicarLayout(L){
+  if(!L||!Array.isArray(L.devices))return;
+  state.devices=L.devices;
+  if(L.ui)state.ui=Object.assign(state.ui,L.ui);
+  salvar(); render(); toast('Layout carregado ✓','ok');
+}
+$('#c_exportar').onclick=()=>{
+  const blob=new Blob([JSON.stringify({devices:state.devices,ui:state.ui,cfg:{tema:state.cfg.tema,modo:state.cfg.modo,url:state.cfg.url}},null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='labarduino-layout.json'; a.click();
+};
+$('#c_importar').onclick=()=>$('#c_arquivo').click();
+$('#c_arquivo').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ aplicarLayout(JSON.parse(r.result)); }catch(err){ toast('Arquivo inválido','err'); } };
+  r.readAsText(f); e.target.value='';
+});
+$('#c_resetar').onclick=()=>{
+  fechar('#mConfig');
+  confirmar('Restaurar padrão','Isso apaga suas edições e volta aos cards originais do kit. Continuar?',()=>{
+    state.devices=JSON.parse(JSON.stringify(PADRAO)); salvar(); render(); toast('Painel restaurado ✓','ok');
+  });
+};
+$('#c_fechar').onclick=()=>{ cfgSalvar(); fechar('#mConfig'); };
+
+/* ---------- Gráfico grande ---------- */
+$('#a_fechar').onclick=()=>fechar('#mAjuda');
+$('#g_fechar').onclick=()=>fechar('#mGraf');
+$('#conf_nao').onclick=()=>{ $('#mConf').classList.remove('open'); confCb=null; };
+$('#conf_sim').onclick=()=>{ $('#mConf').classList.remove('open'); if(confCb)confCb(); confCb=null; };
+function abrirGrafico(d){
+  $('#g_titulo').textContent='📈 '+d.nome;
+  $('#g_info').textContent=d.hist.length
+    ?(d.hist.length+' leituras · janela de '+Math.max(1,Math.round((d.hist[d.hist.length-1].t-d.hist[0].t)/1000))+' s')
+    :'sem leituras ainda';
+  const cv=$('#g_canvas'); cv.width=560; cv.height=240;
+  const ctx=cv.getContext('2d');
+  const cs=getComputedStyle(document.documentElement);
+  const acc=(cs.getPropertyValue('--acc')||'#22d3ee').trim();
+  const mut=(cs.getPropertyValue('--mut')||'#889').trim();
+  const line=(cs.getPropertyValue('--line')||'#345').trim();
+  ctx.clearRect(0,0,560,240);
+  ctx.strokeStyle=line; ctx.lineWidth=1; ctx.strokeRect(0.5,0.5,559,239);
+  ctx.beginPath();
+  for(let gy=0;gy<=4;gy++){ const y=24+gy*47.5; ctx.moveTo(14,y); ctx.lineTo(546,y); }
+  ctx.stroke();
+  const hist=d.hist;
+  ctx.fillStyle=mut; ctx.font='12px sans-serif';
+  if(hist.length<2){ ctx.fillText('Ainda sem leituras suficientes — aguarde alguns segundos.',20,120); abrir('#mGraf'); return; }
+  let mn=Infinity,mx=-Infinity;
+  for(const p of hist){ mn=Math.min(mn,p.v); mx=Math.max(mx,p.v); }
+  if(mx-mn<0.001){ mn-=1; mx+=1; }
+  const X=i=>14+(560-28)*i/(hist.length-1), Y=v=>214-190*((v-mn)/(mx-mn));
+  ctx.fillText(String(Math.round(mx*10)/10),16,18);
+  ctx.fillText(String(Math.round(mn*10)/10),16,234);
+  ctx.strokeStyle=acc; ctx.lineWidth=2.5; ctx.beginPath();
+  hist.forEach((p,i)=>{ if(i)ctx.lineTo(X(i),Y(p.v)); else ctx.moveTo(X(i),Y(p.v)); });
+  ctx.stroke();
+  const last=hist[hist.length-1];
+  ctx.fillStyle=acc; ctx.beginPath(); ctx.arc(X(hist.length-1),Y(last.v),4,0,7); ctx.fill();
+  abrir('#mGraf');
+}
+
+/* ---------- Início ---------- */
+function init(){
+  const p=new URLSearchParams(location.search);
+  const tema=p.get('tema');
+  if(tema&&['tech','claro','cel'].indexOf(tema)>=0)state.cfg.tema=tema;
+  carregar();
+  aplicarTema();
+  $('#busca').value=state.ui.q||'';
+  setPill();
+  render();
+  demoTick();
+}
+init();
+</script>
+</body>
+</html>
